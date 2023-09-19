@@ -1,21 +1,32 @@
-#### I - Se connecter en SSH
-- Suivre le writeup1 jusqu'a l'etape Laurie SSH
+### Explanation: What is the Dirty COW exploit?
+Dirty COW (Dirty Copy-On-Write) is a serious vulnerability in the Linux kernel that allows a local user to gain write access to read-only memory mappings, thereby elevating their privileges on the system. It has been designated as CVE-2016-5195.
+
+In the context of this guide, Dirty COW is exploited to modify the /etc/passwd file, which contains user password information. The exploit makes a backup of the original file, then overwrites the root user's data, setting a new password and effectively granting the attacker root access.
+
+It is important to note that exploiting Dirty COW or any other vulnerability without explicit permission is illegal and unethical. It should only be done in a legal context such as a penetration testing environment or a cybersecurity research setting where you have permission to conduct such tests.
+
+Moreover, it's stressed in the guide to restore the original /etc/passwd file after testing the exploit to maintain the system's integrity and security.
 
 ----
 
-#### II - Creer le script
+#### I - Connect via SSH
+- Follow writeup1 up to the Laurie SSH step.
+
+----
+
+#### II - Create the Script
 
 ``nano dirtycow.c`
-- Copier coller le code present dans /scripts/dirtycow
+- Copy and paste the code located in /scripts/dirtycow
 
-- Compiler l'exploit
+- Compile the exploit
 ``gcc dirtycow.c -lpthread -lcrypt``
 
 ----
 
-#### III - Lancer le script
+#### III - Run the Script
 
-- Lancer l'exploit
+- Launch the exploit
 ``./a.out``
 
 >/etc/passwd successfully backed up to /tmp/passwd.bak
@@ -34,7 +45,7 @@
 
 ----
 
-#### IV - Se connecter en root
+#### IV - Log in as Root
 
 ``su root``
 >Password:
